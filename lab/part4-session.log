@@ -1,0 +1,495 @@
+Script started on 2026-11-21 03:38:33+00:00 [COMMAND="bash /tmp/eb-lab-diagnostics.sh" <not executed on terminal>]
+=== apply supplied chart + environment ===
+==> applying cluster environment (cluster-state/)
+limitrange/debug-lab-guardrails created
+namespace/debug-lab unchanged
+==> installing the broken chart
+Release "debug-lab" does not exist. Installing it now.
+NAME: debug-lab
+LAST DEPLOYED: Sat Nov 21 03:38:33 2026
+NAMESPACE: [36mdebug-lab[0m
+STATUS: [32mdeployed[0m
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+debug-lab installed into namespace debug-lab.
+
+Goal state:
+  * migrate Job: Completed
+  * backend, gateway, worker, reporter, metrics: all pods Running and 1/1 Ready
+  * gateway /status reports {"self":"ok","backend":"ok",...}
+
+Check your progress at any time:
+  ./scenario.sh verify
+
+Lab is (partially) installed. Investigate with kubectl, fix the chart,
+re-run './scenario.sh up' to apply your fixes, and './scenario.sh verify'
+to check progress.
+=== waiting for deployment backend ===
+Waiting for deployment "backend" rollout to finish: 0 of 1 updated replicas are available...
+deployment "backend" successfully rolled out
+=== waiting for deployment gateway ===
+Waiting for deployment "gateway" rollout to finish: 0 of 1 updated replicas are available...
+deployment "gateway" successfully rolled out
+=== waiting for deployment worker ===
+deployment "worker" successfully rolled out
+=== waiting for deployment reporter ===
+Waiting for deployment "reporter" rollout to finish: 0 of 1 updated replicas are available...
+error: timed out waiting for the condition
+=== waiting for deployment metrics ===
+deployment "metrics" successfully rolled out
+job.batch/migrate condition met
+=== first complete verification ===
+==> verifying goal state in namespace debug-lab
+  [32mPASS[0m  migrate Job completed
+  [32mPASS[0m  deployment backend: 1/1 ready
+  [32mPASS[0m  deployment gateway: 1/1 ready
+  [32mPASS[0m  deployment worker: 1/1 ready
+  [31mFAIL[0m  deployment reporter: 0/1 ready
+  [32mPASS[0m  deployment metrics: 1/1 ready
+  [32mPASS[0m  no pods in CrashLoopBackOff
+  [32mPASS[0m  ServiceAccount debug-lab/reporter can list pods
+  [31mFAIL[0m  backend does not answer on http://backend:8080/healthz
+  [31mFAIL[0m  gateway /status does not report backend=ok
+  [31mFAIL[0m  reporter /report does not return a pod count
+
+[31m4 check(s) failing[0m, 7 passing. Keep digging — every failure is a symptom.
+=== pod and service snapshot ===
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                     SELECTOR
+deployment.apps/backend    1/1     1            1           54s   backend      docker.io/ebinterview/eb-debug-app:1.0.1   app=backend
+deployment.apps/gateway    1/1     1            1           54s   gateway      docker.io/ebinterview/eb-debug-app:1.0.1   app=gateway
+deployment.apps/metrics    1/1     1            1           54s   metrics      docker.io/ebinterview/eb-debug-app:1.0.1   app=metrics
+deployment.apps/reporter   0/1     1            0           54s   reporter     docker.io/ebinterview/eb-debug-app:1.0.1   app=reporter
+deployment.apps/worker     1/1     1            1           54s   worker       docker.io/ebinterview/eb-debug-app:1.0.1   app=worker
+
+NAME                            READY   STATUS      RESTARTS   AGE   IP            NODE                 NOMINATED NODE   READINESS GATES
+pod/backend-b577fcddd-phss2     1/1     Running     0          54s   10.244.0.13   demo-control-plane   <none>           <none>
+pod/gateway-b87c8c9c9-m26df     1/1     Running     0          54s   10.244.0.16   demo-control-plane   <none>           <none>
+pod/metrics-675756cd75-52lf7    1/1     Running     0          54s   10.244.0.14   demo-control-plane   <none>           <none>
+pod/migrate-255xx               0/1     Completed   0          54s   10.244.0.17   demo-control-plane   <none>           <none>
+pod/reporter-6d97bc468c-bv7pt   0/1     Running     0          54s   10.244.0.15   demo-control-plane   <none>           <none>
+pod/worker-bb94f6cbf-9zhm8      1/1     Running     0          54s   10.244.0.12   demo-control-plane   <none>           <none>
+
+NAME                STATUS     COMPLETIONS   DURATION   AGE   CONTAINERS   IMAGES                                     SELECTOR
+job.batch/migrate   Complete   1/1           7s         54s   migrate      docker.io/ebinterview/eb-debug-app:1.0.1   batch.kubernetes.io/controller-uid=ae816388-8f13-4064-87b9-a5327816ff1b
+
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+service/backend    ClusterIP   10.96.153.169   <none>        8080/TCP   54s   app=backend
+service/gateway    ClusterIP   10.96.130.216   <none>        80/TCP     54s   app=gateway
+service/reporter   ClusterIP   10.96.159.59    <none>        8080/TCP   54s   app=reporter
+=== pod events ===
+LAST SEEN   TYPE      REASON              OBJECT                           MESSAGE
+54s         Normal    SuccessfulCreate    replicaset/metrics-675756cd75    Created pod: metrics-675756cd75-52lf7
+54s         Normal    Pulling             pod/backend-b577fcddd-phss2      Pulling image "docker.io/ebinterview/eb-debug-app:1.0.1"
+54s         Normal    ScalingReplicaSet   deployment/worker                Scaled up replica set worker-bb94f6cbf from 0 to 1
+54s         Normal    SuccessfulCreate    replicaset/worker-bb94f6cbf      Created pod: worker-bb94f6cbf-9zhm8
+54s         Normal    Pulling             pod/worker-bb94f6cbf-9zhm8       Pulling image "docker.io/ebinterview/eb-debug-app:1.0.1"
+54s         Normal    SuccessfulCreate    replicaset/backend-b577fcddd     Created pod: backend-b577fcddd-phss2
+54s         Normal    ScalingReplicaSet   deployment/backend               Scaled up replica set backend-b577fcddd from 0 to 1
+54s         Normal    Scheduled           pod/worker-bb94f6cbf-9zhm8       Successfully assigned debug-lab/worker-bb94f6cbf-9zhm8 to demo-control-plane
+54s         Normal    ScalingReplicaSet   deployment/reporter              Scaled up replica set reporter-6d97bc468c from 0 to 1
+54s         Normal    SuccessfulCreate    replicaset/reporter-6d97bc468c   Created pod: reporter-6d97bc468c-bv7pt
+54s         Normal    Scheduled           pod/backend-b577fcddd-phss2      Successfully assigned debug-lab/backend-b577fcddd-phss2 to demo-control-plane
+54s         Normal    Pulling             pod/reporter-6d97bc468c-bv7pt    Pulling image "docker.io/ebinterview/eb-debug-app:1.0.1"
+54s         Normal    Scheduled           pod/gateway-b87c8c9c9-m26df      Successfully assigned debug-lab/gateway-b87c8c9c9-m26df to demo-control-plane
+54s         Normal    Pulling             pod/gateway-b87c8c9c9-m26df      Pulling image "docker.io/ebinterview/eb-debug-app:1.0.1"
+54s         Normal    Scheduled           pod/reporter-6d97bc468c-bv7pt    Successfully assigned debug-lab/reporter-6d97bc468c-bv7pt to demo-control-plane
+54s         Normal    SuccessfulCreate    job/migrate                      Created pod: migrate-255xx
+54s         Normal    Pulling             pod/migrate-255xx                Pulling image "docker.io/ebinterview/eb-debug-app:1.0.1"
+54s         Normal    Scheduled           pod/migrate-255xx                Successfully assigned debug-lab/migrate-255xx to demo-control-plane
+54s         Normal    SuccessfulCreate    replicaset/gateway-b87c8c9c9     Created pod: gateway-b87c8c9c9-m26df
+54s         Normal    ScalingReplicaSet   deployment/gateway               Scaled up replica set gateway-b87c8c9c9 from 0 to 1
+54s         Normal    Scheduled           pod/metrics-675756cd75-52lf7     Successfully assigned debug-lab/metrics-675756cd75-52lf7 to demo-control-plane
+54s         Normal    Pulling             pod/metrics-675756cd75-52lf7     Pulling image "docker.io/ebinterview/eb-debug-app:1.0.1"
+54s         Normal    ScalingReplicaSet   deployment/metrics               Scaled up replica set metrics-675756cd75 from 0 to 1
+52s         Normal    Pulled              pod/reporter-6d97bc468c-bv7pt    Successfully pulled image "docker.io/ebinterview/eb-debug-app:1.0.1" in 1.3s (1.3s including waiting). Image size: 3279587 bytes.
+52s         Normal    Pulled              pod/backend-b577fcddd-phss2      Successfully pulled image "docker.io/ebinterview/eb-debug-app:1.0.1" in 322ms (1.62s including waiting). Image size: 3279587 bytes.
+52s         Normal    Pulled              pod/worker-bb94f6cbf-9zhm8       Successfully pulled image "docker.io/ebinterview/eb-debug-app:1.0.1" in 258ms (1.877s including waiting). Image size: 3279587 bytes.
+52s         Normal    Created             pod/worker-bb94f6cbf-9zhm8       Created container: worker
+52s         Normal    Started             pod/worker-bb94f6cbf-9zhm8       Started container worker
+52s         Normal    Started             pod/backend-b577fcddd-phss2      Started container backend
+52s         Normal    Started             pod/reporter-6d97bc468c-bv7pt    Started container reporter
+52s         Normal    Created             pod/reporter-6d97bc468c-bv7pt    Created container: reporter
+52s         Normal    Created             pod/backend-b577fcddd-phss2      Created container: backend
+51s         Normal    Started             pod/gateway-b87c8c9c9-m26df      Started container gateway
+51s         Normal    Pulled              pod/gateway-b87c8c9c9-m26df      Successfully pulled image "docker.io/ebinterview/eb-debug-app:1.0.1" in 294ms (2.161s including waiting). Image size: 3279587 bytes.
+51s         Normal    Created             pod/gateway-b87c8c9c9-m26df      Created container: gateway
+51s         Normal    Started             pod/migrate-255xx                Started container migrate
+51s         Normal    Created             pod/migrate-255xx                Created container: migrate
+51s         Normal    Pulled              pod/migrate-255xx                Successfully pulled image "docker.io/ebinterview/eb-debug-app:1.0.1" in 278ms (2.417s including waiting). Image size: 3279587 bytes.
+51s         Normal    Pulled              pod/metrics-675756cd75-52lf7     Successfully pulled image "docker.io/ebinterview/eb-debug-app:1.0.1" in 282ms (2.693s including waiting). Image size: 3279587 bytes.
+51s         Normal    Created             pod/metrics-675756cd75-52lf7     Created container: metrics
+51s         Normal    Started             pod/metrics-675756cd75-52lf7     Started container metrics
+47s         Normal    Completed           job/migrate                      Job completed
+45s         Warning   Unhealthy           pod/gateway-b87c8c9c9-m26df      Readiness probe failed: HTTP probe failed with statuscode: 503
+4s          Normal    Scheduled           pod/eb-verify-probe              Successfully assigned debug-lab/eb-verify-probe to demo-control-plane
+4s          Normal    Pulling             pod/eb-verify-probe              Pulling image "busybox:1.36"
+3s          Normal    Pulled              pod/eb-verify-probe              Successfully pulled image "busybox:1.36" in 1.097s (1.097s including waiting). Image size: 2217006 bytes.
+3s          Normal    Created             pod/eb-verify-probe              Created container: eb-verify-probe
+3s          Normal    Started             pod/eb-verify-probe              Started container eb-verify-probe
+1s          Warning   Unhealthy           pod/reporter-6d97bc468c-bv7pt    Readiness probe failed: HTTP probe failed with statuscode: 503
+=== reporter authorization ===
+yes
+=== deployment backend ===
+Name:                   backend
+Namespace:              debug-lab
+CreationTimestamp:      Sat, 21 Nov 2026 03:38:33 +0000
+Labels:                 app=backend
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 1
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=backend
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=backend
+           app.kubernetes.io/managed-by=Helm
+           app.kubernetes.io/part-of=eb-debug-lab
+           helm.sh/chart=debug-lab-2.0.0
+  Containers:
+   backend:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:    api
+      APP_NAME:    backend
+      PORT:        8080
+      VERSION:     2.0.0
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   backend-b577fcddd (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  54s   deployment-controller  Scaled up replica set backend-b577fcddd from 0 to 1
+=== logs backend ===
+2026/11/21 03:38:35 eb-debug-app 2.0.0 starting: mode=api pod=backend-b577fcddd-phss2 listening on :8080 (image default is 8081; set PORT to override)
+2026/11/21 03:38:42 GET /healthz -> 200 (from 10.244.0.1:57288)
+2026/11/21 03:38:47 GET /healthz -> 200 (from 10.244.0.1:40244)
+2026/11/21 03:38:47 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:38:52 GET /healthz -> 200 (from 10.244.0.1:40252)
+2026/11/21 03:38:52 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:38:57 GET /healthz -> 200 (from 10.244.0.1:34460)
+2026/11/21 03:38:57 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:39:02 GET /healthz -> 200 (from 10.244.0.1:34464)
+2026/11/21 03:39:02 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:39:07 GET /healthz -> 200 (from 10.244.0.1:55524)
+2026/11/21 03:39:07 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:39:12 GET /healthz -> 200 (from 10.244.0.1:55538)
+2026/11/21 03:39:12 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:39:17 GET /healthz -> 200 (from 10.244.0.1:48320)
+2026/11/21 03:39:17 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:39:22 GET /healthz -> 200 (from 10.244.0.1:48322)
+2026/11/21 03:39:22 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:39:24 GET /healthz -> 200 (from 10.244.0.18:43282)
+2026/11/21 03:39:24 GET /healthz -> 200 (from 10.244.0.16:42070)
+2026/11/21 03:39:27 GET /healthz -> 200 (from 10.244.0.1:45562)
+2026/11/21 03:39:27 GET /healthz -> 200 (from 10.244.0.16:42070)
+=== prior logs backend ===
+Error from server (BadRequest): previous terminated container "backend" in pod "backend-b577fcddd-phss2" not found
+=== deployment gateway ===
+Name:                   gateway
+Namespace:              debug-lab
+CreationTimestamp:      Sat, 21 Nov 2026 03:38:33 +0000
+Labels:                 app=gateway
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 1
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=gateway
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=gateway
+           app.kubernetes.io/managed-by=Helm
+           app.kubernetes.io/part-of=eb-debug-lab
+           helm.sh/chart=debug-lab-2.0.0
+  Containers:
+   gateway:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:     gateway
+      APP_NAME:     gateway
+      BACKEND_URL:  http://backend.debug-lab.svc.cluster.local:8080
+      PORT:         8080
+      VERSION:      2.0.0
+    Mounts:         <none>
+  Volumes:          <none>
+  Node-Selectors:   <none>
+  Tolerations:      <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   gateway-b87c8c9c9 (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  54s   deployment-controller  Scaled up replica set gateway-b87c8c9c9 from 0 to 1
+=== logs gateway ===
+2026/11/21 03:38:36 eb-debug-app 2.0.0 starting: mode=gateway pod=gateway-b87c8c9c9-m26df listening on :8080 (image default is 8081; set PORT to override)
+2026/11/21 03:38:42 readiness failed: backend not reachable: GET http://backend.debug-lab.svc.cluster.local:8080/healthz: Get "http://backend.debug-lab.svc.cluster.local:8080/healthz": dial tcp 10.96.153.169:8080: connect: connection refused
+2026/11/21 03:38:42 GET /healthz -> 503 (from 10.244.0.1:33290)
+2026/11/21 03:38:47 GET /healthz -> 200 (from 10.244.0.1:44384)
+2026/11/21 03:38:52 GET /healthz -> 200 (from 10.244.0.1:44398)
+2026/11/21 03:38:57 GET /healthz -> 200 (from 10.244.0.1:52506)
+2026/11/21 03:39:02 GET /healthz -> 200 (from 10.244.0.1:52520)
+2026/11/21 03:39:07 GET /healthz -> 200 (from 10.244.0.1:38862)
+2026/11/21 03:39:12 GET /healthz -> 200 (from 10.244.0.1:38874)
+2026/11/21 03:39:17 GET /healthz -> 200 (from 10.244.0.1:33138)
+2026/11/21 03:39:22 GET /healthz -> 200 (from 10.244.0.1:33146)
+2026/11/21 03:39:24 GET /status -> 200 (from 10.244.0.18:42820)
+2026/11/21 03:39:27 GET /healthz -> 200 (from 10.244.0.1:55838)
+=== prior logs gateway ===
+Error from server (BadRequest): previous terminated container "gateway" in pod "gateway-b87c8c9c9-m26df" not found
+=== deployment worker ===
+Name:                   worker
+Namespace:              debug-lab
+CreationTimestamp:      Sat, 21 Nov 2026 03:38:33 +0000
+Labels:                 app=worker
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 1
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=worker
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=worker
+           app.kubernetes.io/managed-by=Helm
+           app.kubernetes.io/part-of=eb-debug-lab
+           helm.sh/chart=debug-lab-2.0.0
+  Containers:
+   worker:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:  worker
+      APP_NAME:  worker
+      PORT:      8080
+      VERSION:   2.0.0
+    Mounts:
+      /var/cache/app from worker-cache (rw)
+  Volumes:
+   worker-cache:
+    Type:          EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:        
+    SizeLimit:     <unset>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   worker-bb94f6cbf (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  55s   deployment-controller  Scaled up replica set worker-bb94f6cbf from 0 to 1
+=== logs worker ===
+2026/11/21 03:38:35 eb-debug-app 2.0.0 starting: mode=worker pod=worker-bb94f6cbf-9zhm8 listening on :8080 (image default is 8081; set PORT to override)
+2026/11/21 03:38:38 GET /healthz -> 200 (from 10.244.0.1:36166)
+2026/11/21 03:38:43 GET /healthz -> 200 (from 10.244.0.1:43402)
+2026/11/21 03:38:48 GET /healthz -> 200 (from 10.244.0.1:43408)
+2026/11/21 03:38:53 GET /healthz -> 200 (from 10.244.0.1:39632)
+2026/11/21 03:38:58 GET /healthz -> 200 (from 10.244.0.1:39638)
+2026/11/21 03:39:03 GET /healthz -> 200 (from 10.244.0.1:44676)
+2026/11/21 03:39:08 GET /healthz -> 200 (from 10.244.0.1:44678)
+2026/11/21 03:39:13 GET /healthz -> 200 (from 10.244.0.1:51898)
+2026/11/21 03:39:18 GET /healthz -> 200 (from 10.244.0.1:51908)
+2026/11/21 03:39:23 GET /healthz -> 200 (from 10.244.0.1:40370)
+=== prior logs worker ===
+Error from server (BadRequest): previous terminated container "worker" in pod "worker-bb94f6cbf-9zhm8" not found
+=== deployment reporter ===
+Name:                   reporter
+Namespace:              debug-lab
+CreationTimestamp:      Sat, 21 Nov 2026 03:38:33 +0000
+Labels:                 app=reporter
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 1
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=reporter
+Replicas:               1 desired | 1 updated | 1 total | 0 available | 1 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:           app=reporter
+                    app.kubernetes.io/managed-by=Helm
+                    app.kubernetes.io/part-of=eb-debug-lab
+                    helm.sh/chart=debug-lab-2.0.0
+  Service Account:  reporter
+  Containers:
+   reporter:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      NAMESPACE:    (v1:metadata.namespace)
+      APP_MODE:    reporter
+      APP_NAME:    reporter
+      PORT:        8080
+      VERSION:     2.0.0
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      False   MinimumReplicasUnavailable
+  Progressing    True    ReplicaSetUpdated
+OldReplicaSets:  <none>
+NewReplicaSet:   reporter-6d97bc468c (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  55s   deployment-controller  Scaled up replica set reporter-6d97bc468c from 0 to 1
+=== logs reporter ===
+2026/11/21 03:38:35 eb-debug-app 2.0.0 starting: mode=reporter pod=reporter-6d97bc468c-bv7pt listening on :8080 (image default is 8081; set PORT to override)
+2026/11/21 03:38:41 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/21 03:38:41 GET /healthz -> 503 (from 10.244.0.1:40542)
+2026/11/21 03:38:46 GET /healthz -> 503 (from 10.244.0.1:51936)
+2026/11/21 03:38:51 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/21 03:38:51 GET /healthz -> 503 (from 10.244.0.1:51942)
+2026/11/21 03:38:56 GET /healthz -> 503 (from 10.244.0.1:49374)
+2026/11/21 03:39:01 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/21 03:39:01 GET /healthz -> 503 (from 10.244.0.1:49378)
+2026/11/21 03:39:06 GET /healthz -> 503 (from 10.244.0.1:51210)
+2026/11/21 03:39:11 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/21 03:39:11 GET /healthz -> 503 (from 10.244.0.1:51214)
+2026/11/21 03:39:16 GET /healthz -> 503 (from 10.244.0.1:44334)
+2026/11/21 03:39:21 pod list failed: parse pod list: unexpected end of JSON input
+2026/11/21 03:39:21 GET /healthz -> 503 (from 10.244.0.1:44346)
+2026/11/21 03:39:26 GET /healthz -> 503 (from 10.244.0.1:51696)
+=== prior logs reporter ===
+Error from server (BadRequest): previous terminated container "reporter" in pod "reporter-6d97bc468c-bv7pt" not found
+=== deployment metrics ===
+Name:                   metrics
+Namespace:              debug-lab
+CreationTimestamp:      Sat, 21 Nov 2026 03:38:33 +0000
+Labels:                 app=metrics
+                        app.kubernetes.io/managed-by=Helm
+                        app.kubernetes.io/part-of=eb-debug-lab
+                        helm.sh/chart=debug-lab-2.0.0
+Annotations:            deployment.kubernetes.io/revision: 1
+                        meta.helm.sh/release-name: debug-lab
+                        meta.helm.sh/release-namespace: debug-lab
+Selector:               app=metrics
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=metrics
+           app.kubernetes.io/managed-by=Helm
+           app.kubernetes.io/part-of=eb-debug-lab
+           helm.sh/chart=debug-lab-2.0.0
+  Containers:
+   metrics:
+    Image:      docker.io/ebinterview/eb-debug-app:1.0.1
+    Port:       8080/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     200m
+      memory:  128Mi
+    Requests:
+      cpu:      50m
+      memory:   64Mi
+    Readiness:  http-get http://:8080/healthz delay=3s timeout=3s period=5s #success=1 #failure=3
+    Environment:
+      APP_MODE:    api
+      APP_NAME:    metrics
+      PORT:        8080
+      VERSION:     2.0.0
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   metrics-675756cd75 (1/1 replicas created)
+Events:
+  Type    Reason             Age   From                   Message
+  ----    ------             ----  ----                   -------
+  Normal  ScalingReplicaSet  55s   deployment-controller  Scaled up replica set metrics-675756cd75 from 0 to 1
+=== logs metrics ===
+2026/11/21 03:38:36 eb-debug-app 2.0.0 starting: mode=api pod=metrics-675756cd75-52lf7 listening on :8080 (image default is 8081; set PORT to override)
+2026/11/21 03:38:43 GET /healthz -> 200 (from 10.244.0.1:47118)
+2026/11/21 03:38:48 GET /healthz -> 200 (from 10.244.0.1:47132)
+2026/11/21 03:38:53 GET /healthz -> 200 (from 10.244.0.1:45608)
+2026/11/21 03:38:58 GET /healthz -> 200 (from 10.244.0.1:45616)
+2026/11/21 03:39:03 GET /healthz -> 200 (from 10.244.0.1:45216)
+2026/11/21 03:39:08 GET /healthz -> 200 (from 10.244.0.1:45228)
+2026/11/21 03:39:13 GET /healthz -> 200 (from 10.244.0.1:59978)
+2026/11/21 03:39:18 GET /healthz -> 200 (from 10.244.0.1:59988)
+2026/11/21 03:39:23 GET /healthz -> 200 (from 10.244.0.1:51644)
+=== prior logs metrics ===
+Error from server (BadRequest): previous terminated container "metrics" in pod "metrics-675756cd75-52lf7" not found
+
+Script done on 2026-11-21 03:39:28+00:00 [COMMAND_EXIT_CODE="1"]
