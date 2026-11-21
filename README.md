@@ -5,7 +5,7 @@
 - **Part 1:** Python 3.12 standard-library HTTP service, multi-stage Dockerfile and non-root runtime.
 - **Part 2:** Helm Deployment, ConfigMap, Service, Ingress, two probes, resources, and overrideable values.
 - **Part 3:** idempotent `setup.sh` for kind cluster `demo`, pinned ingress-nginx controller, build/load, and Helm release `demo` in namespace `demo`.
-- **Part 4:** Four manifest-proven errors corrected. Two independent defects still require actual cluster diagnostics, and **live test evidence has not yet been collected**. See `lab/FINDINGS.md`.
+- **Part 4:** Six lab defects were identified using manifest inspection and genuine Kubernetes events/logs, and fixes are in the chart. A hosted kind cluster confirms 7/11 verifier checks; the other four still fail (reporter API call plus an apparent short-lived probe attachment/output race). This is **not yet a fully passing submission**. See `lab/FINDINGS.md` and the real `lab/part4-session.log`.
 - **Part 5:** Gateway API migration rationale in `ANSWERS.md`.
 
 ## Prerequisites
@@ -41,7 +41,7 @@ kubectl -n demo port-forward service/demo 8080:80
 curl -fsS http://localhost:8080/
 ```
 
-Expected root response is JSON with `app`, `version`, and the Kubernetes pod's hostname. `/healthz` returns HTTP 200. **No observed cluster output is claimed here.**
+Expected root response is JSON with `app`, `version`, and the Kubernetes pod's hostname. `/healthz` returns HTTP 200. The endpoints and idempotent setup were tested successfully on a GitHub-hosted Linux runner with a temporary kind cluster; the GitHub Actions logs contain the observed output.
 
 ## Test Helm overrides and live ConfigMap updates
 
@@ -69,7 +69,7 @@ Environment variables `APP_NAME` and `VERSION` are set via ConfigMap (`envFrom`)
 
 ## Part 4 — run the actual debug lab and capture real evidence
 
-Do **not** present static analysis as a completed runtime investigation. The supplied image is not available as source, and the last two defects may be visible only through the running cluster. Record your own terminal session **before investigating**:
+A genuine terminal recording from a GitHub-hosted kind cluster is included as `lab/part4-session.log`. Current verifier results are 7/11, **not** green. For a repeat run, record your own terminal session **before investigating**:
 
 ```bash
 cd lab
@@ -96,7 +96,7 @@ kubectl auth can-i list pods -n debug-lab --as=system:serviceaccount:debug-lab:r
 exit
 ```
 
-Copy **real** output from the recorded terminal session to the six fields in `lab/FINDINGS.md`. The included `lab/scenario.sh` and `lab/cluster-state/` are verbatim copies of the handout. Do not alter the lab image repository or tag.
+Inspect the **real** output in `lab/part4-session.log` and the six entries of `lab/FINDINGS.md`. The included `lab/scenario.sh` and `lab/cluster-state/` are verbatim copies of the handout. Do not alter the lab image repository or tag.
 
 > Tip: if a container has no shell, use `kubectl describe`, container logs and `kubectl debug` with an ephemeral debug image; avoid `kubectl exec ... sh` assumptions. Inspect the Service endpoints and test HTTP/DNS from a temporary BusyBox pod.
 
@@ -112,7 +112,7 @@ Copy **real** output from the recorded terminal session to the six fields in `la
 - No production persistent data or external store: requests are stateless, and pod restarts lose any hypothetical in-memory state.
 - No authentication or NetworkPolicy: not appropriate for exposed production networks.
 - No HPA/PDB/topology spreading, performance tests, or advanced observability: scaling resilience and saturation behavior are unproven.
-- **No claim of real Part 4 session recording or 10/10 verification:** this artifact was prepared without a usable Docker/kind runtime; those checks must be completed in a real local cluster. Do not submit with fabricated evidence.
+- **Part 4 remains incomplete:** actual hosted-kind terminal output is included, but final `./scenario.sh verify` has 7/11 PASS, not 11/11. The reporter could not decode the pod list from Kubernetes API and the short-lived in-cluster verifier probe missed early output. These are not silently labeled as passing.
 
 ## Production-ready improvements
 
@@ -120,7 +120,7 @@ Use a currently supported Gateway API controller rather than end-of-life ingress
 
 ## How I used AI
 
-I used **ChatGPT (OpenAI)** to analyze the supplied assignment and YAML, scaffold the Python service, Docker/Helm/setup files, suggest manifest fixes, and draft the migration answer and documentation. I independently need to run the cluster tests, inspect the remaining runtime failures, correct any AI-generated assumptions, collect real command output, and be prepared to explain or modify the work in a live interview. No false claim of a successful local Kubernetes run or recorded session is made.
+I used **ChatGPT (OpenAI)** to analyze the assignment, generate and revise Python/Docker/Helm/setup files, debug chart defects, draft the migration answer and documentation, and orchestrate **real GitHub Actions Linux runners** with Docker, kind, kubectl and Helm because I did not have a laptop. I reviewed the genuine runner logs to correct AI guesses about ports, read-only filesystem, UID handling and image vulnerabilities. GitHub-hosted kind verification is real, not synthetic output, but the final 11-check lab verifier is not yet green. I must be able to explain the files, errors, trade-offs, and commands independently in the live assessment.
 
 ## Local unit test
 
