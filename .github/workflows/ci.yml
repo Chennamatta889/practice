@@ -1,0 +1,30 @@
+name: DevOps take-home checks
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-lint-build-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit test the Python service
+        run: cd service && python3 -m unittest -v test_app.py
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.3.0
+      - name: Helm lint
+        run: helm lint chart && helm lint lab/broken-chart
+      - name: Render overridden values
+        run: helm template demo chart -n demo --set replicaCount=3 --set config.appName=custom --set config.version=2.0.0 > /tmp/demo-rendered.yaml
+      - name: Docker build
+        run: docker build -t demo-service:ci ./service
+      - name: Scan built image with Trivy (HIGH/CRITICAL fail)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: demo-service:ci
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
