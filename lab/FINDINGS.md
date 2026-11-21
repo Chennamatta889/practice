@@ -155,3 +155,23 @@ STATUS=200
 ```
 
 A BusyBox `wget` HTTPS probe failed its TLS handshake, but curl succeeded; therefore the failure must **not** be attributed simply to broken API networking or missing RBAC. `kubectl logs deploy/reporter` still shows the prebuilt reporter failing to parse the list. Potential next diagnostics include checking the reporter HTTP client settings and comparing Kubernetes versions; do not claim a root cause without further evidence. The original verification script is left unchanged. [Actual diagnostic run](https://github.com/Chennamatta889/practice/actions/runs/44862700917).
+
+## Additional November 21 verification (two Kubernetes versions)
+
+I reran the **unchanged** `lab/scenario.sh verify` in fresh kind clusters using Kubernetes v1.29.12 and v1.32.2, then tested the reporter's mounted ServiceAccount trust configuration as a potential correction. Neither Kubernetes version nor the `SSL_CERT_FILE=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` environment setting resolved the reporter response parsing failure, so I removed that unhelpful workaround from the final chart.
+
+Actual command output excerpts from the recorded GitHub Actions jobs:
+
+```text
+HTTP 200
+86635 /tmp/pods.json
+2026/11/21 03:58:53 pod list failed: parse pod list: unexpected end of JSON input
+4 check(s) failing, 7 passing.
+```
+
+The API request was made by a separate pod with the reporter ServiceAccount. This establishes that the API returned a nonempty JSON response through that test path; it does **not** establish that the prebuilt reporter binary uses the same request settings or that its parser is sound. Its exact failure remains undetermined. Also, the ephemeral BusyBox check inside `scenario.sh` still loses the first lines of probe stdout on this non-interactive CI runner, so the verifier does not reliably reflect the independently healthy backend/gateway Services.
+
+- [Kubernetes v1.29.12 and v1.32.2 baseline](https://github.com/Chennamatta889/practice/actions/runs/44863395624)
+- [ServiceAccount CA trial on both versions; reverted after failure](https://github.com/Chennamatta889/practice/actions/runs/44863562180)
+
+**Disclosure:** This remains an incomplete 7/11 lab submission despite all six concrete manifest-level fixes. I did not modify the handout's `scenario.sh` or `cluster-state/`, replace the provided image, turn off any workloads, or present a failing verification as successful.
