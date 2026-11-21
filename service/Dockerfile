@@ -7,6 +7,7 @@ RUN python -m compileall -q /build/app.py
 # Runtime stage. Do not ship build caches and do not run as root.
 FROM python:3.12.16-slim-trixie
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PORT=8080
+RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade zlib1g && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system --gid 10001 app && \
     useradd --system --uid 10001 --gid 10001 --home-dir /nonexistent --shell /usr/sbin/nologin app
 WORKDIR /app
