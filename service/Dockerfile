@@ -1,15 +1,12 @@
-# Build/compile stage; both bases use a fixed version, not 'latest'.
-FROM python:3.12.16-slim-trixie AS builder
+# Keep runtime small, unprivileged, and pinned to explicit Python and Alpine versions.
+FROM python:3.12.16-alpine3.23 AS builder
 WORKDIR /build
 COPY app.py /build/app.py
 RUN python -m compileall -q /build/app.py
 
-# Runtime stage. Do not ship build caches and do not run as root.
-FROM python:3.12.16-slim-trixie
+FROM python:3.12.16-alpine3.23
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PORT=8080
-RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade zlib1g && rm -rf /var/lib/apt/lists/*
-RUN groupadd --system --gid 10001 app && \
-    useradd --system --uid 10001 --gid 10001 --home-dir /nonexistent --shell /usr/sbin/nologin app
+RUN addgroup -S -g 10001 app && adduser -S -u 10001 -G app -h /nonexistent app
 WORKDIR /app
 COPY --from=builder --chown=10001:10001 /build/app.py /app/app.py
 USER 10001:10001
