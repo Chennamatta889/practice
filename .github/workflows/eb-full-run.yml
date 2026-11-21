@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/eb-full-run.yml"
       - "lab/**"
+      - "!lab/part4-session.log"
       - "service/**"
       - "chart/**"
       - "setup.sh"
@@ -85,12 +86,3 @@ jobs:
           name: enterprise-bot-cloud-evidence
           path: lab/part4-session.log
           if-no-files-found: warn
-      - name: Preserve successful real lab session in Git
-        if: success()
-        run: |
-          git config user.name "Cloud Validation Bot"
-          git config user.email "validation@users.noreply.github.com"
-          git add lab/part4-session.log
-          git diff --cached --quiet && exit 0
-          git commit -m "test: record live kind debugging session"
-          git push origin HEAD:enterprise-bot-devops-eval
