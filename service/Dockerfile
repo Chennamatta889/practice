@@ -1,11 +1,11 @@
 # Build/compile stage; both bases use a fixed version, not 'latest'.
-FROM python:3.12.9-slim-bookworm AS builder
+FROM python:3.12.16-slim-trixie AS builder
 WORKDIR /build
 COPY app.py /build/app.py
 RUN python -m compileall -q /build/app.py
 
 # Runtime stage. Do not ship build caches and do not run as root.
-FROM python:3.12.9-slim-bookworm
+FROM python:3.12.16-slim-trixie
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PORT=8080
 RUN groupadd --system --gid 10001 app && \
     useradd --system --uid 10001 --gid 10001 --home-dir /nonexistent --shell /usr/sbin/nologin app
