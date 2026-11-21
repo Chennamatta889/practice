@@ -21,7 +21,7 @@ jobs:
       - name: Docker build
         run: docker build -t demo-service:ci ./service
       - name: Scan built image with Trivy (HIGH/CRITICAL fail)
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: demo-service:ci
           format: table
